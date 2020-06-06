@@ -5,7 +5,7 @@ import itertools
 import os
 import sys
 
-from re import findall
+from re import findall, sub
 from string import Template
 from urllib.parse import urlparse
 
@@ -57,13 +57,13 @@ def run(pdf_dir):
     write_index_html(pdf_dir, "index.html")
 
 def find_links_in_pdf(base_dir, f):
-    with open(os.path.join(base_dir, f), 'rb') as pdf:
-        urls = set(findall(r'URI\(([^)]+)\)', pdf.read().decode("ISO-8859-1")))
-        return [(f, urlparse(url).netloc, url) for url in urls]
+    with open(os.path.join(base_dir, f), "rb") as pdf:
+        urls = set(findall(r"URI\(([^)]+)\)", pdf.read().decode("ISO-8859-1")))
+        return [(f, clean_domain(urlparse(url).netloc), url) for url in urls]
 
 def dump_csv(pdf_links, base_dir, out_file):
     with open(os.path.join(base_dir, out_file), "w") as csvfile:
-        writer = csv.writer(csvfile)
+        writer = csv.writer(csvfile, dialect="unix")
         for link in pdf_links:
             writer.writerow(link)
 
@@ -122,6 +122,9 @@ def write_index_html(base_dir, out_file):
         )
         f.write(html_template.substitute(title="Home", body=content))
 
+def clean_domain(domain):
+    return sub(r"^www\.", "", domain)
+
 def make_link(link):
     return "<a href='" + link + "'>" + link + "</a>"
 
@@ -142,7 +145,7 @@ def usage():
     print("Usage: python3 pdf2links.py <pdf_dir>")
     sys.exit(1)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) != 2:
         usage()
     else:
